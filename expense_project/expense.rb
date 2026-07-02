@@ -2,6 +2,8 @@
 
 require "pg"
 
+require "io/console"
+
 class ExpenseData
   def initialize
     @connection = PG.connect(dbname: "expenses")
@@ -39,6 +41,11 @@ class ExpenseData
     end
   end
 
+  def delete_all_expenses
+    @connection.exec("DELETE FROM expenses")
+    puts "All expenses have been deleted."
+  end
+
   private
 
   def display_expenses(expenses)
@@ -68,6 +75,10 @@ class CLI
       @application.add_expense(amount, memo)
     when "delete"
       @application.delete_expense(arguments[0])
+    when "clear"
+      puts "This will remove all expenses. Are you sure? (y/n)"
+      response = $stdin.getch
+      @application.delete_all_expenses if response == "y"
     when "list"
       @application.list_expenses
     when "search"
