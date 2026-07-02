@@ -9,7 +9,25 @@ class ExpenseData
 
   def list_expenses
     result = @connection.exec("SELECT * FROM expenses ORDER BY created_on ASC")
-    result.each do |tuple|
+    display_expenses(result)
+  end
+
+  def add_expense(amount, memo)
+    date = Date.today
+    sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
+    @connection.exec_params(sql, [amount, memo, date])
+  end
+
+  def search_expenses(query)
+    sql = "SELECT * FROM expenses WHERE memo ILIKE $1"
+    result = @connection.exec_params(sql, ["%#{query}%"])
+    display_expenses(result)
+  end
+
+  private
+
+  def display_expenses(expenses)
+    expenses.each do |tuple|
       columns = [ tuple["id"].rjust(3),
                   tuple["created_on"].rjust(10),
                   tuple["amount"].rjust(12),
@@ -17,14 +35,6 @@ class ExpenseData
 
       puts columns.join(" | ")
     end
-
-    
-  end
-
-  def add_expense(amount, memo)
-    date = Date.today
-    sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
-    @connection.exec_params(sql, [amount, memo, date])
   end
 end
 
@@ -43,6 +53,8 @@ class CLI
       @application.add_expense(amount, memo)
     when "list"
       @application.list_expenses
+    when "search"
+      @application.search_expenses(arguments[0])
     else
       display_help
     end
