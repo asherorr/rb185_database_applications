@@ -66,6 +66,8 @@ class CLI
       memo = arguments[1]
       abort "You must provide an amount and memo." unless amount && memo
       @application.add_expense(amount, memo)
+    when "delete"
+      @application.delete_expense(arguments[0])
     when "list"
       @application.list_expenses
     when "search"
