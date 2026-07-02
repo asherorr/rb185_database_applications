@@ -6,6 +6,7 @@ require "io/console"
 class ExpenseData
   def initialize
     @connection = PG.connect(dbname: "expenses")
+    setup_schema
   end
 
   def list_expenses
@@ -53,10 +54,8 @@ class ExpenseData
     count = expenses.ntuples
     if count == 0
       puts "There are no expenses."
-    elsif count == 1
-      puts "There is 1 expense."
     else
-      puts "There are #{count} expenses."
+      puts "There are #{count} expense#{"s" if count != 1}."
     end
   end
 
@@ -72,9 +71,29 @@ class ExpenseData
 
     puts "-" * 50
 
-    amount_sum = expenses.field_values("amount").map(&:to_f).inject(:+)
+    amount_sum = expenses.inject(0) do |sum, tuple|
+      sum + tuple["amount"].to_f
+    end
 
-    puts "Total #{format('%.2f', amount_sum.to_s).rjust(25)}"
+    puts "Total #{amount_sum.to_s.rjust(25)}"
+  end
+
+  def setup_schema
+    result = @connection.exec <<~SQL
+      SELECT COUNT(*) FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'expenses';
+    SQL
+
+    if result[0]["count"] == "0"
+      @connection.exec <<~SQL
+        CREATE TABLE expenses (
+          id serial PRIMARY KEY,
+          amount numeric(6,2) NOT NULL CHECK (amount >= 0.01),
+          memo text NOT NULL,
+          created_on date NOT NULL
+        );
+      SQL
+    end
   end
 end
 
